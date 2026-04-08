@@ -1,0 +1,28 @@
+# Binarios
+sshcli
+sshcli.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Archivos de prueba
+*.test
+*.out
+
+# Directorios de dependencias
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Configuración local
+.sshcli.conf
