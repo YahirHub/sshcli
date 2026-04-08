@@ -31,7 +31,7 @@ A diferencia de clientes SSH tradicionales, sshcli está optimizado para uso pro
 ### Desde código fuente
 
 ```bash
-git clone https://github.com/tu-usuario/sshcli.git
+git clone https://github.com/YahirHub/sshcli
 cd sshcli
 go build -o sshcli .
 
