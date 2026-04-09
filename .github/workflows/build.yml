@@ -11,6 +11,10 @@ on:
         required: false
         default: 'dev'
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   build-all:
     name: Build All Platforms (Single Runner)
@@ -98,7 +102,6 @@ jobs:
           cd dist
           VERSION=${{ steps.version.outputs.VERSION }}
           
-          # Comprimir cada binario
           for file in sshcli-*; do
             if [[ "$file" == *.exe ]]; then
               zip "${file%.exe}-${VERSION}.zip" "$file"
