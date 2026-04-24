@@ -20,8 +20,10 @@ sshcli status         # Verificar conexión y salud del servidor activo
 
 Para agregar un nuevo servidor (solicitar Host, User, Pass al usuario):
 ```bash
-sshcli server add <nombre> --host <ip> --user <user> --pass <pass>
+sshcli server add <nombre> --host <ip> --user <user> --pass "<password>"
 ```
+
+**IMPORTANTE:** Si la contraseña contiene caracteres especiales (`!`, `$`, `` ` ``, `"`, `\`, etc.), debe ir entre comillas dobles para evitar que el shell los interprete. Ejemplo: `--pass "Linux_0145!"`
 
 ---
 
