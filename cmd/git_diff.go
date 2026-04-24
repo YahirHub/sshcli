@@ -14,20 +14,8 @@ var (
 var gitDiffCmd = &cobra.Command{
 	Use:   "git-diff [directorio]",
 	Short: "Muestra los cambios en el repositorio Git",
-	Long: `Muestra las diferencias en el repositorio Git remoto.
-Por defecto muestra cambios no staged.
-
-Ejemplos:
-  sshcli git-diff /app/proyecto
-  sshcli git-diff --staged /app/proyecto    # Cambios staged
-  sshcli git-diff --server prod /var/www/app
-
-Casos de uso para agentes:
-  - Revisar cambios antes de commit
-  - Verificar modificaciones realizadas
-  - Inspeccionar código cambiado`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runGitDiff,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runGitDiff,
 }
 
 func init() {
@@ -39,7 +27,7 @@ func init() {
 func runGitDiff(cmd *cobra.Command, args []string) error {
 	dir := "."
 	if len(args) > 0 {
-		dir = args[0]
+		dir = cleanRemotePath(args[0])
 	}
 
 	client, _, err := getClient(gitDiffServer)
@@ -48,7 +36,7 @@ func runGitDiff(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	gitCmd := fmt.Sprintf("cd %s && git diff", dir)
+	gitCmd := fmt.Sprintf("cd '%s' && git diff", dir)
 	if gitDiffStaged {
 		gitCmd += " --staged"
 	}

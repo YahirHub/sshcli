@@ -31,7 +31,7 @@ func init() {
 }
 
 func runMkdir(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 
 	client, _, err := getClient(mkdirServer)
 	if err != nil {

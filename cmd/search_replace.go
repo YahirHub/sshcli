@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -15,74 +16,77 @@ var (
 var searchReplaceCmd = &cobra.Command{
 	Use:   "search-replace [archivo] [buscar] [reemplazar]",
 	Short: "Busca y reemplaza texto en un archivo remoto",
-	Long: `Busca y reemplaza texto dentro de un archivo remoto.
-Herramienta esencial para modificar código de forma quirúrgica.
-Por defecto reemplaza solo la primera ocurrencia.
+	Long: `Busca y reemplaza una cadena de texto dentro de un archivo en el servidor remoto.
+Herramienta quirúrgica para modificar configuraciones o código.
+
+Características:
+  - Normalización automática de rutas (evita errores de Windows/Git Bash).
+  - Por defecto reemplaza solo la primera ocurrencia.
+  - Usa la flag --all (-a) para reemplazar todas las coincidencias.
+  - Operación segura: lee el archivo, modifica en memoria y sobreescribe.
 
 Ejemplos:
-  sshcli search-replace /app/config.py "localhost" "prod.db.com"
+  sshcli search-replace /etc/nginx/nginx.conf "80" "8080"
   sshcli search-replace --all /app/main.py "print(" "logger.info("
-  sshcli search-replace --server prod /etc/nginx/nginx.conf "80" "8080"
-  
-Casos de uso para agentes:
-  - Cambiar configuraciones
-  - Renombrar variables/funciones
-  - Actualizar imports
-  - Corregir bugs puntuales`,
+  sshcli search-replace --server prod /var/www/.env "DEBUG=true" "DEBUG=false"`,
 	Args: cobra.ExactArgs(3),
 	RunE: runSearchReplace,
 }
 
 func init() {
 	rootCmd.AddCommand(searchReplaceCmd)
-	searchReplaceCmd.Flags().BoolVarP(&searchReplaceAll, "all", "a", false, "Reemplazar todas las ocurrencias")
+	searchReplaceCmd.Flags().BoolVarP(&searchReplaceAll, "all", "a", false, "Reemplazar todas las ocurrencias encontradas")
 	searchReplaceCmd.Flags().StringVarP(&searchReplaceServer, "server", "s", "", "Servidor específico a usar")
 }
 
 func runSearchReplace(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	// 1. Normalizar la ruta remota usando el motor de rutas global
+	remotePath := paths.ToRemote(args[0])
 	search := args[1]
 	replace := args[2]
 
+	// 2. Obtener el cliente SSH/SFTP
 	client, _, err := getClient(searchReplaceServer)
 	if err != nil {
-		return fmt.Errorf("error: %v", err)
+		return fmt.Errorf("error de conexión: %v", err)
 	}
 	defer client.Close()
 
-	// Leer archivo
+	// 3. Leer el contenido del archivo remoto
 	data, err := client.ReadFile(remotePath)
 	if err != nil {
-		return fmt.Errorf("error al leer archivo: %v", err)
+		return fmt.Errorf("error al leer archivo remoto en %s: %v", remotePath, err)
 	}
 
 	content := string(data)
 	var newContent string
 	var count int
 
+	// 4. Realizar el reemplazo según las flags
 	if searchReplaceAll {
 		count = strings.Count(content, search)
-		newContent = strings.ReplaceAll(content, search, replace)
+		if count > 0 {
+			newContent = strings.ReplaceAll(content, search, replace)
+		}
 	} else {
 		if strings.Contains(content, search) {
 			count = 1
 			newContent = strings.Replace(content, search, replace, 1)
-		} else {
-			count = 0
-			newContent = content
 		}
 	}
 
+	// 5. Verificar si hubo cambios
 	if count == 0 {
-		fmt.Println("Sin coincidencias encontradas")
+		fmt.Printf("Sin coincidencias para '%s' en %s\n", search, remotePath)
 		return nil
 	}
 
-	// Escribir archivo modificado
+	// 6. Escribir el nuevo contenido de vuelta al servidor
+	// Mantenemos permisos estándar de lectura/escritura (0644)
 	if err := client.WriteFile(remotePath, []byte(newContent), 0644); err != nil {
-		return fmt.Errorf("error al escribir archivo: %v", err)
+		return fmt.Errorf("error al escribir los cambios en el servidor: %v", err)
 	}
 
-	fmt.Printf("Reemplazado: %d ocurrencia(s) en %s\n", count, remotePath)
+	fmt.Printf("✓ Reemplazado exitosamente: %d ocurrencia(s) en %s\n", count, remotePath)
 	return nil
 }

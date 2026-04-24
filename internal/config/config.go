@@ -42,7 +42,7 @@ func NewConfig() *Config {
 	}
 }
 
-// Save guarda la configuración en el archivo
+// Save guarda la configuración en el archivo con permisos restrictivos
 func Save(cfg *Config) error {
 	path, err := getConfigPath()
 	if err != nil {
@@ -54,6 +54,7 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("error al serializar configuración: %v", err)
 	}
 
+	// 0600 asegura que solo el usuario actual pueda leer/escribir las contraseñas
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("error al escribir configuración: %v", err)
 	}

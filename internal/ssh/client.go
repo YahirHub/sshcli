@@ -25,7 +25,7 @@ func Connect(host string, port int, user, password string) (*Client, error) {
 			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         30 * time.Second,
+		Timeout:         20 * time.Second,
 	}
 
 	addr := fmt.Sprintf("%s:%d", host, port)
@@ -46,7 +46,7 @@ func Connect(host string, port int, user, password string) (*Client, error) {
 	}, nil
 }
 
-// Close cierra todas las conexiones
+// Close cierra todas las conexiones de forma segura
 func (c *Client) Close() error {
 	if c.sftpClient != nil {
 		c.sftpClient.Close()
@@ -70,34 +70,33 @@ func (c *Client) Run(command string) (string, error) {
 	session.Stderr = &stderr
 
 	err = session.Run(command)
+	
+	output := stdout.String()
 	if err != nil {
 		if stderr.Len() > 0 {
-			return "", fmt.Errorf("%s: %v", stderr.String(), err)
+			return output, fmt.Errorf("%s", stderr.String())
 		}
-		return "", err
+		return output, err
 	}
 
-	return stdout.String(), nil
+	return output, nil
 }
 
 // WriteFile escribe contenido a un archivo remoto
 func (c *Client) WriteFile(remotePath string, data []byte, perm os.FileMode) error {
-	file, err := c.sftpClient.Create(remotePath)
+	// SFTP Create falla si el directorio no existe. 
+	// El comando 'mkdir -p' debe haber sido llamado antes en la capa superior (cmd).
+	file, err := c.sftpClient.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 	if err != nil {
-		return fmt.Errorf("fallo al crear archivo remoto: %v", err)
+		return fmt.Errorf("fallo al abrir/crear archivo remoto (¿existe la carpeta?): %v", err)
 	}
 	defer file.Close()
 
 	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("fallo al escribir archivo: %v", err)
+		return fmt.Errorf("fallo al escribir datos en SFTP: %v", err)
 	}
 
-	if err := c.sftpClient.Chmod(remotePath, perm); err != nil {
-		// No es crítico si falla chmod
-		return nil
-	}
-
-	return nil
+	return c.sftpClient.Chmod(remotePath, perm)
 }
 
 // ReadFile lee el contenido de un archivo remoto
@@ -129,9 +128,4 @@ func (c *Client) IsDir(remotePath string) bool {
 		return false
 	}
 	return info.IsDir()
-}
-
-// ListDir lista el contenido de un directorio remoto
-func (c *Client) ListDir(remotePath string) ([]os.FileInfo, error) {
-	return c.sftpClient.ReadDir(remotePath)
 }

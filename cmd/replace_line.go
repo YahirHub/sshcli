@@ -36,7 +36,7 @@ func init() {
 }
 
 func runReplaceLine(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 	lineNum, err := strconv.Atoi(args[1])
 	if err != nil {
 		return fmt.Errorf("número de línea inválido: %v", err)

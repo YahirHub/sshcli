@@ -35,7 +35,7 @@ func init() {
 
 func runGrep(cmd *cobra.Command, args []string) error {
 	pattern := args[0]
-	remotePath := args[1]
+	remotePath := cleanRemotePath(args[1])
 
 	client, _, err := getClient(grepServer)
 	if err != nil {

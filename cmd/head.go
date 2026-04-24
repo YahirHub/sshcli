@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
-
+	"sshcli/internal/paths"
 	"github.com/spf13/cobra"
 )
 
@@ -15,21 +14,8 @@ var (
 var headCmd = &cobra.Command{
 	Use:   "head [archivo]",
 	Short: "Muestra las primeras líneas de un archivo",
-	Long: `Muestra las primeras líneas de un archivo remoto.
-Útil para inspeccionar el inicio de archivos de código o configuración.
-
-Ejemplos:
-  sshcli head /app/main.py
-  sshcli head -n 50 /app/main.py
-  sshcli head --server dev /etc/nginx/nginx.conf
-
-Casos de uso para agentes:
-  - Ver imports y dependencias
-  - Inspeccionar cabeceras de archivos
-  - Revisar configuración inicial
-  - Verificar shebang y metadatos`,
-	Args: cobra.ExactArgs(1),
-	RunE: runHead,
+	Args:  cobra.ExactArgs(1),
+	RunE:  runHead,
 }
 
 func init() {
@@ -39,7 +25,7 @@ func init() {
 }
 
 func runHead(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := paths.ToRemote(args[0])
 
 	client, _, err := getClient(headServer)
 	if err != nil {
@@ -47,9 +33,7 @@ func runHead(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	headCommand := fmt.Sprintf("head -n %s %s", strconv.Itoa(headLines), remotePath)
-
-	output, err := client.Run(headCommand)
+	output, err := client.Run(fmt.Sprintf("head -n %d '%s'", headLines, remotePath))
 	if err != nil {
 		return fmt.Errorf("error al leer archivo: %v", err)
 	}

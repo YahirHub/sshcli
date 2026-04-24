@@ -50,7 +50,7 @@ func init() {
 }
 
 func runRunCmd(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 
 	client, _, err := getClient(runServer)
 	if err != nil {

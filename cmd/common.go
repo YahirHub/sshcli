@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"sshcli/internal/config"
+	"sshcli/internal/paths"
 	"sshcli/internal/ssh"
 )
 
@@ -31,4 +32,14 @@ func getClient(serverName string) (*ssh.Client, *config.Server, error) {
 	}
 
 	return client, server, nil
+}
+
+// cleanRemotePath expone la lógica de paths remotos de forma global
+func cleanRemotePath(p string) string {
+	return paths.ToRemote(p)
+}
+
+// cleanLocalPath expone la lógica de paths locales de forma global
+func cleanLocalPath(p string) string {
+	return paths.ToLocal(p)
 }

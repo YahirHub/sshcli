@@ -11,18 +11,7 @@ var gitAddServer string
 var gitAddCmd = &cobra.Command{
 	Use:   "git-add [directorio] [archivos...]",
 	Short: "Agrega archivos al staging area",
-	Long: `Agrega archivos al área de staging para el próximo commit.
-Usa '.' para agregar todos los archivos.
-
-Ejemplos:
-  sshcli git-add /app/proyecto .                    # Agregar todo
-  sshcli git-add /app/proyecto main.py config.py   # Archivos específicos
-  sshcli git-add --server prod /var/www/app .
-
-Casos de uso para agentes:
-  - Preparar archivos para commit
-  - Seleccionar cambios específicos
-  - Stage de nuevos archivos`,
+	Long: `Agrega archivos al área de staging para el próximo commit.`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: runGitAdd,
 }
@@ -33,7 +22,7 @@ func init() {
 }
 
 func runGitAdd(cmd *cobra.Command, args []string) error {
-	dir := args[0]
+	dir := cleanRemotePath(args[0])
 	files := args[1:]
 
 	client, _, err := getClient(gitAddServer)
@@ -47,7 +36,8 @@ func runGitAdd(cmd *cobra.Command, args []string) error {
 		fileList += f + " "
 	}
 
-	gitCmd := fmt.Sprintf("cd %s && git add %s", dir, fileList)
+	// Importante: '%s' entre comillas simples para evitar errores de espacios en la ruta
+	gitCmd := fmt.Sprintf("cd '%s' && git add %s", dir, fileList)
 	output, err := client.Run(gitCmd)
 	if err != nil {
 		return fmt.Errorf("error al agregar archivos: %v\n%s", err, output)

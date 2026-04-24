@@ -9,21 +9,10 @@ import (
 var gitCloneServer string
 
 var gitCloneCmd = &cobra.Command{
-	Use:   "git-clone [url] [destino]",
+	Use:   "git-clone [url_o_ruta] [destino]",
 	Short: "Clona un repositorio Git",
-	Long: `Clona un repositorio Git en el servidor remoto.
-
-Ejemplos:
-  sshcli git-clone https://github.com/user/repo.git /app/proyecto
-  sshcli git-clone git@github.com:user/repo.git /var/www/app
-  sshcli git-clone --server prod https://github.com/user/repo.git /opt/app
-
-Casos de uso para agentes:
-  - Desplegar nuevo proyecto
-  - Clonar dependencias
-  - Inicializar ambiente de desarrollo`,
-	Args: cobra.ExactArgs(2),
-	RunE: runGitClone,
+	Args:  cobra.ExactArgs(2),
+	RunE:  runGitClone,
 }
 
 func init() {
@@ -32,8 +21,10 @@ func init() {
 }
 
 func runGitClone(cmd *cobra.Command, args []string) error {
-	repoURL := args[0]
-	destPath := args[1]
+	// IMPORTANTE: Limpiamos también la URL por si es una ruta local del servidor
+	// cleanRemotePath es seguro incluso con URLs reales (http, git@, etc)
+	repoURL := cleanRemotePath(args[0])
+	destPath := cleanRemotePath(args[1])
 
 	client, _, err := getClient(gitCloneServer)
 	if err != nil {
@@ -41,7 +32,8 @@ func runGitClone(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	gitCmd := fmt.Sprintf("git clone %s %s", repoURL, destPath)
+	// Usamos comillas simples para proteger ambas rutas en el servidor remoto
+	gitCmd := fmt.Sprintf("git clone '%s' '%s'", repoURL, destPath)
 	output, err := client.Run(gitCmd)
 	if err != nil {
 		return fmt.Errorf("error al clonar: %v\n%s", err, output)

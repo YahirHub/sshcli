@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"sshcli/internal/paths"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -12,29 +13,9 @@ var syntaxCheckServer string
 
 var syntaxCheckCmd = &cobra.Command{
 	Use:   "syntax-check [archivo]",
-	Short: "Verifica la sintaxis de un archivo de código",
-	Long: `Verifica la sintaxis de archivos de código sin ejecutarlos.
-Soporta Python, JavaScript/Node, Go, Bash, Ruby, PHP.
-Detecta el lenguaje automáticamente por la extensión.
-
-Ejemplos:
-  sshcli syntax-check /app/main.py
-  sshcli syntax-check /app/index.js
-  sshcli syntax-check --server dev /app/main.go
-  sshcli syntax-check /opt/scripts/deploy.sh
-
-Lenguajes soportados:
-  .py     -> python -m py_compile
-  .js     -> node --check
-  .ts     -> tsc --noEmit (si disponible)
-  .go     -> go build -n
-  .sh     -> bash -n
-  .rb     -> ruby -c
-  .php    -> php -l
-  .json   -> python -m json.tool
-  .yaml   -> python -c "import yaml"`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSyntaxCheck,
+	Short: "Verifica la sintaxis de un archivo de código remoto",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runSyntaxCheck,
 }
 
 func init() {
@@ -43,7 +24,7 @@ func init() {
 }
 
 func runSyntaxCheck(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := paths.ToRemote(args[0])
 
 	client, _, err := getClient(syntaxCheckServer)
 	if err != nil {
@@ -62,7 +43,7 @@ func runSyntaxCheck(cmd *cobra.Command, args []string) error {
 	case ".ts":
 		checkCmd = fmt.Sprintf("tsc --noEmit %s 2>&1 || node --check %s 2>&1", remotePath, remotePath)
 	case ".go":
-		checkCmd = fmt.Sprintf("cd $(dirname %s) && go build -n ./... 2>&1 | head -20", remotePath)
+		checkCmd = fmt.Sprintf("cd $(dirname %s) && go build -n ./... 2>&1", remotePath)
 	case ".sh", ".bash":
 		checkCmd = fmt.Sprintf("bash -n %s 2>&1", remotePath)
 	case ".rb":
@@ -73,14 +54,11 @@ func runSyntaxCheck(cmd *cobra.Command, args []string) error {
 		checkCmd = fmt.Sprintf("python3 -m json.tool %s > /dev/null 2>&1 && echo 'JSON válido' || echo 'JSON inválido'", remotePath)
 	case ".yaml", ".yml":
 		checkCmd = fmt.Sprintf("python3 -c \"import yaml; yaml.safe_load(open('%s'))\" 2>&1 && echo 'YAML válido' || echo 'Error en YAML'", remotePath)
-	case ".xml":
-		checkCmd = fmt.Sprintf("python3 -c \"import xml.etree.ElementTree as ET; ET.parse('%s')\" 2>&1 && echo 'XML válido' || echo 'Error en XML'", remotePath)
 	default:
-		return fmt.Errorf("extensión '%s' no soportada para verificación de sintaxis", ext)
+		return fmt.Errorf("extensión '%s' no soportada para verificación remota", ext)
 	}
 
 	output, err := client.Run(checkCmd)
-	
 	output = strings.TrimSpace(output)
 	
 	if err != nil {

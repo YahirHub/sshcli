@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ var moveCmd = &cobra.Command{
 	Use:   "move [origen_remoto] [destino_remoto]",
 	Short: "Mueve o renombra archivos o directorios",
 	Long: `Mueve o renombra archivos y directorios en el servidor remoto.
+Ambas rutas son normalizadas para evitar errores de shells de Windows.
 
 Ejemplos:
   sshcli move /home/user/viejo.txt /home/user/nuevo.txt
@@ -26,19 +28,24 @@ func init() {
 }
 
 func runMove(cmd *cobra.Command, args []string) error {
-	source := args[0]
-	dest := args[1]
+	// 1. Normalizar rutas usando el motor global
+	source := paths.ToRemote(args[0])
+	dest := paths.ToRemote(args[1])
 
+	// 2. Obtener cliente
 	client, _, err := getClient(moveServer)
 	if err != nil {
-		return fmt.Errorf("error: %v", err)
+		return fmt.Errorf("error de conexión: %v", err)
 	}
 	defer client.Close()
 
-	if _, err := client.Run(fmt.Sprintf("mv %s %s", source, dest)); err != nil {
-		return fmt.Errorf("error al mover: %v", err)
+	// 3. Ejecutar comando mv con rutas protegidas por comillas simples
+	moveCommand := fmt.Sprintf("mv '%s' '%s'", source, dest)
+
+	if _, err := client.Run(moveCommand); err != nil {
+		return fmt.Errorf("error al mover en el servidor: %v", err)
 	}
 
-	fmt.Printf("Movido: %s -> %s\n", source, dest)
+	fmt.Printf("✓ Movido exitosamente: %s -> %s\n", source, dest)
 	return nil
 }

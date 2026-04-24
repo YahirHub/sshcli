@@ -15,18 +15,7 @@ var (
 var gitCommitCmd = &cobra.Command{
 	Use:   "git-commit [directorio]",
 	Short: "Crea un commit en el repositorio Git",
-	Long: `Crea un commit con los cambios staged en el repositorio Git remoto.
-Usa -a para agregar y commitear todos los archivos modificados.
-
-Ejemplos:
-  sshcli git-commit /app/proyecto -m "fix: corregido bug en login"
-  sshcli git-commit -a /app/proyecto -m "feat: nueva funcionalidad"
-  sshcli git-commit --server prod /var/www/app -m "deploy: versión 2.0"
-
-Casos de uso para agentes:
-  - Guardar cambios realizados
-  - Crear puntos de restauración
-  - Documentar modificaciones`,
+	Long: `Crea un commit con los cambios staged en el repositorio Git remoto.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runGitCommit,
 }
@@ -42,7 +31,7 @@ func init() {
 func runGitCommit(cmd *cobra.Command, args []string) error {
 	dir := "."
 	if len(args) > 0 {
-		dir = args[0]
+		dir = cleanRemotePath(args[0])
 	}
 
 	client, _, err := getClient(gitCommitServer)
@@ -53,9 +42,9 @@ func runGitCommit(cmd *cobra.Command, args []string) error {
 
 	var gitCmd string
 	if gitCommitAll {
-		gitCmd = fmt.Sprintf("cd %s && git add -A && git commit -m '%s'", dir, gitCommitMsg)
+		gitCmd = fmt.Sprintf("cd '%s' && git add -A && git commit -m '%s'", dir, gitCommitMsg)
 	} else {
-		gitCmd = fmt.Sprintf("cd %s && git commit -m '%s'", dir, gitCommitMsg)
+		gitCmd = fmt.Sprintf("cd '%s' && git commit -m '%s'", dir, gitCommitMsg)
 	}
 
 	output, err := client.Run(gitCmd)

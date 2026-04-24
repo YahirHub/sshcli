@@ -22,13 +22,7 @@ Por defecto muestra las tres métricas.
 Ejemplos:
   sshcli wc /app/main.py
   sshcli wc -l /app/main.py              # Solo líneas
-  sshcli wc --server prod /var/log/app.log
-
-Casos de uso para agentes:
-  - Medir tamaño de archivos de código
-  - Verificar si archivo creció/decreció
-  - Estimar complejidad por líneas
-  - Monitorear tamaño de logs`,
+  sshcli wc --server prod /var/log/app.log`,
 	Args: cobra.ExactArgs(1),
 	RunE: runWc,
 }
@@ -42,7 +36,7 @@ func init() {
 }
 
 func runWc(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 
 	client, _, err := getClient(wcServer)
 	if err != nil {

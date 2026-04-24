@@ -11,13 +11,7 @@ var appendServer string
 var appendCmd = &cobra.Command{
 	Use:   "append [ruta_remota] [contenido]",
 	Short: "Agrega contenido al final de un archivo",
-	Long: `Agrega texto al final de un archivo remoto existente.
-Útil para agregar líneas a configuraciones o logs.
-
-Ejemplos:
-  sshcli append /etc/hosts "192.168.1.100 miservidor"
-  sshcli append --server prod /var/www/.env "DEBUG=false"
-  sshcli append /home/user/.bashrc "export PATH=$PATH:/opt/bin"`,
+	Long: `Agrega texto al final de un archivo remoto existente.`,
 	Args: cobra.ExactArgs(2),
 	RunE: runAppend,
 }
@@ -28,7 +22,7 @@ func init() {
 }
 
 func runAppend(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 	content := args[1]
 
 	client, _, err := getClient(appendServer)

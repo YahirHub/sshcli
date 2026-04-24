@@ -22,31 +22,7 @@ var (
 var execCmd = &cobra.Command{
 	Use:   "exec [comando]",
 	Short: "Ejecuta un comando en el servidor remoto",
-	Long: `Ejecuta un comando en el servidor remoto configurado.
-El comando puede ser cualquier instrucción válida de shell.
-
-MODO NORMAL (sin -t):
-  sshcli exec "ls -la"
-  sshcli exec "cat /etc/hostname"
-  sshcli exec "echo hello"
-
-MODO INTERACTIVO (-t):
-  sshcli exec -t htop              # Programas de pantalla completa
-  sshcli exec -t "apt install x"   # Confirmaciones Y/N
-  sshcli exec -t "vim archivo"     # Editores
-  sshcli exec -t bash              # Shell interactivo
-
-CONFIGURACIÓN:
-  Puedes habilitar -t por defecto con:
-    sshcli config set tty true
-
-  Y desactivarlo temporalmente con --no-tty:
-    sshcli exec --no-tty "ls -la"
-
-NOTAS:
-  - Usa -t para programas que requieren entrada de teclado
-  - Sin -t para scripts y comandos simples (más rápido)
-  - Si el terminal se bugea, escribe 'reset' y presiona Enter`,
+	Long: `Ejecuta un comando en el servidor remoto configurado.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runExec,
 }
@@ -54,14 +30,14 @@ NOTAS:
 func init() {
 	rootCmd.AddCommand(execCmd)
 	execCmd.Flags().StringVarP(&execServer, "server", "s", "", "Servidor específico a usar")
-	execCmd.Flags().BoolVarP(&execTTY, "tty", "t", false, "Modo interactivo con pseudo-terminal")
-	execCmd.Flags().BoolVar(&execNoTTY, "no-tty", false, "Forzar modo no interactivo")
+	execCmd.Flags().BoolVarP(&execTTY, "tty", "t", false, "Habilitar modo interactivo (PTY)")
+	execCmd.Flags().BoolVar(&execNoTTY, "no-tty", false, "Forzar modo normal (ignora config)")
 }
 
 func runExec(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("error: %v. Usa 'sshcli server add' para configurar", err)
+		return fmt.Errorf("error de configuración: %v", err)
 	}
 
 	var server *config.Server
@@ -71,16 +47,13 @@ func runExec(cmd *cobra.Command, args []string) error {
 		server, err = cfg.GetActiveServer()
 	}
 	if err != nil {
-		return fmt.Errorf("error: %v", err)
+		return err
 	}
 
-	// Determinar si usar TTY
-	useTTY := execTTY || cfg.DefaultTTY
-	if execNoTTY {
-		useTTY = false
-	}
+	// Simplificado: No intentamos limpiar comandos complejos automáticamente
+	// para evitar añadir slashes innecesarios al principio.
+	command := strings.Join(args, " ")
 
-	// Configurar cliente SSH
 	sshConfig := &ssh.ClientConfig{
 		User: server.User,
 		Auth: []ssh.AuthMethod{
@@ -98,58 +71,40 @@ func runExec(cmd *cobra.Command, args []string) error {
 
 	session, err := client.NewSession()
 	if err != nil {
-		return fmt.Errorf("error al crear sesión: %v", err)
+		return fmt.Errorf("error de sesión: %v", err)
 	}
 	defer session.Close()
 
-	command := strings.Join(args, " ")
+	useTTY := (execTTY || cfg.DefaultTTY) && !execNoTTY
 
 	if useTTY {
 		return runInteractiveExec(session, command)
 	}
 
-	// Modo no interactivo
-	output, err := session.CombinedOutput(command)
-	if err != nil {
-		if len(output) > 0 {
-			fmt.Print(string(output))
-		}
-		return fmt.Errorf("error al ejecutar comando: %v", err)
-	}
-	fmt.Print(string(output))
-	return nil
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	return session.Run(command)
 }
 
 func runInteractiveExec(session *ssh.Session, command string) error {
 	fd := int(os.Stdin.Fd())
-	var oldState *term.State
-	var err error
-
-	// Solo configurar raw mode si es un terminal real
-	if term.IsTerminal(fd) {
-		oldState, err = term.MakeRaw(fd)
-		if err != nil {
-			// Si falla, continuar sin raw mode
-			oldState = nil
-		}
+	if !term.IsTerminal(fd) {
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+		return session.Run(command)
 	}
 
-	// SIEMPRE restaurar el terminal al salir
-	defer func() {
-		if oldState != nil {
-			term.Restore(fd, oldState)
-		}
-	}()
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return err
+	}
+	defer term.Restore(fd, oldState)
 
-	// Obtener tamaño de terminal
-	width, height := 80, 24
-	if term.IsTerminal(fd) {
-		if w, h, err := term.GetSize(fd); err == nil {
-			width, height = w, h
-		}
+	width, height, err := term.GetSize(fd)
+	if err != nil {
+		width, height = 80, 24
 	}
 
-	// Configurar PTY remoto
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
 		ssh.TTY_OP_ISPEED: 14400,
@@ -157,29 +112,12 @@ func runInteractiveExec(session *ssh.Session, command string) error {
 	}
 
 	if err := session.RequestPty("xterm-256color", height, width, modes); err != nil {
-		return fmt.Errorf("error al solicitar PTY: %v", err)
+		return err
 	}
 
-	// Conectar stdin, stdout, stderr
 	session.Stdin = os.Stdin
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 
-	// Ejecutar comando
-	err = session.Run(command)
-	
-	// Restaurar terminal ANTES de retornar error
-	if oldState != nil {
-		term.Restore(fd, oldState)
-		oldState = nil // Evitar doble restore en defer
-	}
-
-	if err != nil {
-		if _, ok := err.(*ssh.ExitError); ok {
-			return nil
-		}
-		return err
-	}
-
-	return nil
+	return session.Run(command)
 }

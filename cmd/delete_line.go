@@ -36,7 +36,7 @@ func init() {
 }
 
 func runDeleteLine(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	remotePath := cleanRemotePath(args[0])
 	startLine, err := strconv.Atoi(args[1])
 	if err != nil {
 		return fmt.Errorf("número de línea inicial inválido: %v", err)

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -14,15 +15,8 @@ var (
 var chmodCmd = &cobra.Command{
 	Use:   "chmod [permisos] [ruta_remota]",
 	Short: "Cambia permisos de archivos o directorios",
-	Long: `Cambia los permisos de un archivo o directorio remoto.
-Usa notación octal (755, 644) o simbólica (+x, u+w).
-
-Ejemplos:
-  sshcli chmod 755 /home/user/script.sh
-  sshcli chmod -r 644 /var/www/app
-  sshcli chmod +x /home/user/run.sh`,
-	Args: cobra.ExactArgs(2),
-	RunE: runChmod,
+	Args:  cobra.ExactArgs(2),
+	RunE:  runChmod,
 }
 
 func init() {
@@ -33,7 +27,7 @@ func init() {
 
 func runChmod(cmd *cobra.Command, args []string) error {
 	permissions := args[0]
-	remotePath := args[1]
+	remotePath := paths.ToRemote(args[1])
 
 	client, _, err := getClient(chmodServer)
 	if err != nil {
@@ -45,7 +39,7 @@ func runChmod(cmd *cobra.Command, args []string) error {
 	if chmodRecursive {
 		chmodCommand += " -R"
 	}
-	chmodCommand += fmt.Sprintf(" %s %s", permissions, remotePath)
+	chmodCommand += fmt.Sprintf(" %s '%s'", permissions, remotePath)
 
 	if _, err := client.Run(chmodCommand); err != nil {
 		return fmt.Errorf("error al cambiar permisos: %v", err)

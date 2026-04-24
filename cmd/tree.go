@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -15,35 +16,21 @@ var (
 var treeCmd = &cobra.Command{
 	Use:   "tree [directorio]",
 	Short: "Muestra la estructura de directorios en forma de árbol",
-	Long: `Muestra la estructura de archivos y directorios en formato árbol.
-Esencial para entender la organización de un proyecto.
-
-Ejemplos:
-  sshcli tree /app
-  sshcli tree /var/www -d 2              # Profundidad máxima 2
-  sshcli tree /app --dirs                 # Solo directorios
-  sshcli tree --server prod /opt/app
-
-Casos de uso para agentes:
-  - Entender estructura de proyecto
-  - Localizar archivos de configuración
-  - Mapear arquitectura de código
-  - Identificar módulos y componentes`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runTree,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runTree,
 }
 
 func init() {
 	rootCmd.AddCommand(treeCmd)
-	treeCmd.Flags().IntVarP(&treeDepth, "depth", "d", 3, "Profundidad máxima del árbol")
-	treeCmd.Flags().BoolVar(&treeDirs, "dirs", false, "Mostrar solo directorios")
+	treeCmd.Flags().IntVarP(&treeDepth, "depth", "d", 3, "Profundidad máxima")
+	treeCmd.Flags().BoolVar(&treeDirs, "dirs", false, "Solo directorios")
 	treeCmd.Flags().StringVarP(&treeServer, "server", "s", "", "Servidor específico a usar")
 }
 
 func runTree(cmd *cobra.Command, args []string) error {
-	remotePath := "."
+	remotePath := "/"
 	if len(args) > 0 {
-		remotePath = args[0]
+		remotePath = paths.ToRemote(args[0])
 	}
 
 	client, _, err := getClient(treeServer)
@@ -52,7 +39,6 @@ func runTree(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	// Primero intentamos con tree si está instalado
 	var treeCommand string
 	if treeDirs {
 		treeCommand = fmt.Sprintf("tree -d -L %d %s 2>/dev/null || find %s -maxdepth %d -type d | head -100", 
@@ -64,19 +50,14 @@ func runTree(cmd *cobra.Command, args []string) error {
 
 	output, err := client.Run(treeCommand)
 	if err != nil {
-		// Fallback a find con formato
+		// Fallback manual si 'tree' no está instalado
 		fallbackCmd := fmt.Sprintf("find %s -maxdepth %d 2>/dev/null | sort | head -200", remotePath, treeDepth)
-		output, err = client.Run(fallbackCmd)
-		if err != nil {
-			return fmt.Errorf("error al listar estructura: %v", err)
-		}
+		output, _ = client.Run(fallbackCmd)
 	}
 
 	if output == "" {
-		fmt.Printf("Directorio vacío o no accesible: %s\n", remotePath)
-		return nil
+		fmt.Printf("Estructura de %s (vía find):\n", remotePath)
 	}
-
 	fmt.Print(output)
 	return nil
 }

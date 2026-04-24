@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -16,12 +17,11 @@ var findCmd = &cobra.Command{
 	Use:   "find [ruta_remota]",
 	Short: "Busca archivos y directorios en el servidor remoto",
 	Long: `Busca archivos y directorios usando patrones.
-Útil para agentes que necesitan localizar archivos específicos.
+Limpia automáticamente la ruta de búsqueda para evitar conflictos con Git Bash.
 
 Ejemplos:
-  sshcli find /home/user -name "*.py"
-  sshcli find --server prod /var/www -name "config*"
-  sshcli find /etc -type f -name "*.conf"`,
+  sshcli find /home/user -n "*.py"
+  sshcli find /etc -t f -n "*.conf"`,
 	Args: cobra.ExactArgs(1),
 	RunE: runFind,
 }
@@ -34,15 +34,18 @@ func init() {
 }
 
 func runFind(cmd *cobra.Command, args []string) error {
-	remotePath := args[0]
+	// 1. Normalizar ruta
+	remotePath := paths.ToRemote(args[0])
 
+	// 2. Conectar
 	client, _, err := getClient(findServer)
 	if err != nil {
-		return fmt.Errorf("error: %v", err)
+		return fmt.Errorf("error de conexión: %v", err)
 	}
 	defer client.Close()
 
-	findCommand := fmt.Sprintf("find %s", remotePath)
+	// 3. Construir comando find con comillas simples
+	findCommand := fmt.Sprintf("find '%s'", remotePath)
 	if findType != "" {
 		findCommand += fmt.Sprintf(" -type %s", findType)
 	}
@@ -53,7 +56,7 @@ func runFind(cmd *cobra.Command, args []string) error {
 
 	output, err := client.Run(findCommand)
 	if err != nil {
-		return fmt.Errorf("error en búsqueda: %v", err)
+		return fmt.Errorf("error en búsqueda remota: %v", err)
 	}
 
 	if output == "" {

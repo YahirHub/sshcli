@@ -11,18 +11,8 @@ var gitPushServer string
 var gitPushCmd = &cobra.Command{
 	Use:   "git-push [directorio]",
 	Short: "Envía commits al repositorio remoto",
-	Long: `Ejecuta git push para enviar los commits locales al remoto.
-
-Ejemplos:
-  sshcli git-push /app/proyecto
-  sshcli git-push --server prod /var/www/app
-
-Casos de uso para agentes:
-  - Publicar cambios realizados
-  - Sincronizar con repositorio central
-  - Completar flujo de deploy`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runGitPush,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runGitPush,
 }
 
 func init() {
@@ -33,7 +23,7 @@ func init() {
 func runGitPush(cmd *cobra.Command, args []string) error {
 	dir := "."
 	if len(args) > 0 {
-		dir = args[0]
+		dir = cleanRemotePath(args[0])
 	}
 
 	client, _, err := getClient(gitPushServer)
@@ -42,7 +32,7 @@ func runGitPush(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	gitCmd := fmt.Sprintf("cd %s && git push", dir)
+	gitCmd := fmt.Sprintf("cd '%s' && git push", dir)
 	output, err := client.Run(gitCmd)
 	if err != nil {
 		return fmt.Errorf("error al hacer push: %v\n%s", err, output)
