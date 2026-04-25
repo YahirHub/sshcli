@@ -49,7 +49,7 @@ func init() {
 	runCmd.Flags().StringVarP(&runServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runRunCmd(cmd *cobra.Command, args []string) error {
+func runRunCmd(cmd *cobra.Command, args[]string) error {
 	remotePath := cleanRemotePath(args[0])
 
 	client, _, err := getClient(runServer)
@@ -83,7 +83,7 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Construir comando
-	var cmdParts []string
+	var cmdParts[]string
 
 	// Agregar variables de entorno
 	if runEnvVars != "" {
@@ -92,11 +92,11 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 
 	// Cambiar directorio de trabajo
 	if runWorkdir != "" {
-		cmdParts = append(cmdParts, fmt.Sprintf("cd %s &&", runWorkdir))
+		cmdParts = append(cmdParts, fmt.Sprintf("cd '%s' &&", runWorkdir))
 	}
 
-	// Comando principal
-	cmdParts = append(cmdParts, interpreter, remotePath)
+	// Comando principal con la ruta protegida
+	cmdParts = append(cmdParts, interpreter, fmt.Sprintf("'%s'", remotePath))
 
 	// Agregar argumentos
 	if runArgs != "" {

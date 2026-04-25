@@ -14,13 +14,13 @@ import (
 
 var (
 	downloadServer  string
-	downloadExclude []string
+	downloadExclude[]string
 	downloadSync    bool
 	downloadDryRun  bool
 )
 
 var downloadCmd = &cobra.Command{
-	Use:   "download [origen_remoto] [destino_local]",
+	Use:   "download[origen_remoto] [destino_local]",
 	Short: "Descarga un archivo o carpeta del servidor remoto",
 	Long: `Descarga archivos. Soporta rutas locales estilo /c/... para Windows.
 Limpia automáticamente rutas remotas si el shell las mutila.`,
@@ -31,7 +31,7 @@ Limpia automáticamente rutas remotas si el shell las mutila.`,
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringVarP(&downloadServer, "server", "s", "", "Servidor específico a usar")
-	downloadCmd.Flags().StringArrayVarP(&downloadExclude, "exclude", "e", []string{}, "Patrones a excluir")
+	downloadCmd.Flags().StringArrayVarP(&downloadExclude, "exclude", "e",[]string{}, "Patrones a excluir")
 	downloadCmd.Flags().BoolVar(&downloadSync, "sync", false, "Modo sincronización")
 	downloadCmd.Flags().BoolVar(&downloadDryRun, "dry-run", false, "Modo dry-run")
 }
@@ -46,14 +46,14 @@ func runDownload(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	output, err := client.Run(fmt.Sprintf("test -d %s && echo 'dir' || echo 'file'", remotePath))
+	output, err := client.Run(fmt.Sprintf("test -d '%s' && echo 'dir' || echo 'file'", remotePath))
 	if err != nil {
 		return fmt.Errorf("error al verificar ruta remota: %v", err)
 	}
 	isRemoteDir := strings.TrimSpace(output) == "dir"
 
 	// Si el local es un directorio (termina en slash o existe)
-	isLocalDir := strings.HasSuffix(localPath, string(os.PathSeparator))
+	isLocalDir := strings.HasSuffix(args[1], "/") || strings.HasSuffix(args[1], "\\")
 	if !isLocalDir {
 		if info, err := os.Stat(localPath); err == nil && info.IsDir() {
 			isLocalDir = true
@@ -93,16 +93,16 @@ func downloadFileNewSmart(client *ssh.Client, remotePath, localPath string, dryR
 		return fmt.Errorf("error al escribir archivo local: %v", err)
 	}
 
-	fmt.Printf("✓ Descargado: %s -> %s\n", remotePath, localPath)
+	fmt.Printf("[OK] Descargado: %s -> %s\n", remotePath, localPath)
 	return nil
 }
 
-func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, excludePatterns []string, sync bool, dryRun bool) error {
+func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, excludePatterns[]string, sync bool, dryRun bool) error {
 	if !dryRun {
 		os.MkdirAll(localDir, 0755)
 	}
 
-	output, err := client.Run(fmt.Sprintf("find %s -type f 2>/dev/null", remoteDir))
+	output, err := client.Run(fmt.Sprintf("find '%s' -type f 2>/dev/null", remoteDir))
 	if err != nil {
 		return err
 	}
@@ -128,13 +128,13 @@ func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, exclud
 
 		os.MkdirAll(filepath.Dir(localDest), 0755)
 		os.WriteFile(localDest, data, 0644)
-		fmt.Printf("✓ Descargado: %s\n", rel)
+		fmt.Printf("[OK] Descargado: %s\n", rel)
 	}
 	return nil
 }
 
-func processDownloadExcludes(excludes []string) []string {
-	var patterns []string
+func processDownloadExcludes(excludes[]string) []string {
+	var patterns[]string
 	for _, exc := range excludes {
 		parts := strings.Split(exc, ",")
 		for _, p := range parts {

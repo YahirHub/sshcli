@@ -33,14 +33,14 @@ func init() {
 	writeCmd.Flags().BoolVarP(&writeExec, "exec", "x", false, "Hacer ejecutable (755)")
 }
 
-func runWrite(cmd *cobra.Command, args []string) error {
+func runWrite(cmd *cobra.Command, args[]string) error {
 	remotePath := paths.ToRemote(args[0])
 	
-	var content []byte
+	var content[]byte
 	var err error
 
 	if len(args) == 2 {
-		content = []byte(args[1])
+		content =[]byte(args[1])
 	} else {
 		content, err = io.ReadAll(os.Stdin)
 		if err != nil {
@@ -67,13 +67,15 @@ func runWrite(cmd *cobra.Command, args []string) error {
 	// Asegurar carpeta remota
 	dir := path.Dir(remotePath)
 	if dir != "." && dir != "/" {
-		_, _ = client.Run(fmt.Sprintf("mkdir -p %s", dir))
+		if _, err := client.Run(fmt.Sprintf("mkdir -p '%s'", dir)); err != nil {
+			return fmt.Errorf("error al crear directorio: %v", err)
+		}
 	}
 
 	if err := client.WriteFile(remotePath, content, os.FileMode(p)); err != nil {
 		return fmt.Errorf("error al escribir: %v", err)
 	}
 
-	fmt.Printf("✓ Archivo escrito exitosamente: %s (mode: %s, size: %d bytes)\n", remotePath, permStr, len(content))
+	fmt.Printf("[OK] Archivo escrito exitosamente: %s (mode: %s, size: %d bytes)\n", remotePath, permStr, len(content))
 	return nil
 }

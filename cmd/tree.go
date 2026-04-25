@@ -27,7 +27,7 @@ func init() {
 	treeCmd.Flags().StringVarP(&treeServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runTree(cmd *cobra.Command, args []string) error {
+func runTree(cmd *cobra.Command, args[]string) error {
 	remotePath := "/"
 	if len(args) > 0 {
 		remotePath = paths.ToRemote(args[0])
@@ -41,17 +41,17 @@ func runTree(cmd *cobra.Command, args []string) error {
 
 	var treeCommand string
 	if treeDirs {
-		treeCommand = fmt.Sprintf("tree -d -L %d %s 2>/dev/null || find %s -maxdepth %d -type d | head -100", 
+		treeCommand = fmt.Sprintf("tree -d -L %d '%s' 2>/dev/null || find '%s' -maxdepth %d -type d | head -100", 
 			treeDepth, remotePath, remotePath, treeDepth)
 	} else {
-		treeCommand = fmt.Sprintf("tree -L %d %s 2>/dev/null || find %s -maxdepth %d | head -200", 
+		treeCommand = fmt.Sprintf("tree -L %d '%s' 2>/dev/null || find '%s' -maxdepth %d | head -200", 
 			treeDepth, remotePath, remotePath, treeDepth)
 	}
 
 	output, err := client.Run(treeCommand)
 	if err != nil {
 		// Fallback manual si 'tree' no está instalado
-		fallbackCmd := fmt.Sprintf("find %s -maxdepth %d 2>/dev/null | sort | head -200", remotePath, treeDepth)
+		fallbackCmd := fmt.Sprintf("find '%s' -maxdepth %d 2>/dev/null | sort | head -200", remotePath, treeDepth)
 		output, _ = client.Run(fallbackCmd)
 	}
 

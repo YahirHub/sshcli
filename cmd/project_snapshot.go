@@ -37,7 +37,7 @@ func runSnapshot(cmd *cobra.Command, args []string) error {
 
 	// 1. Estructura de archivos
 	fmt.Println("[1. ESTRUCTURA DE ARCHIVOS]")
-	tree, _ := client.Run(fmt.Sprintf("tree -L 2 %s 2>/dev/null || ls -R %s | head -20", remotePath, remotePath))
+	tree, _ := client.Run(fmt.Sprintf("tree -L 2 '%s' 2>/dev/null || ls -R '%s' | head -20", remotePath, remotePath))
 	fmt.Println(tree)
 
 	// 2. Últimos commits

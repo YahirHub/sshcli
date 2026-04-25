@@ -23,7 +23,7 @@ func init() {
 	syntaxCheckCmd.Flags().StringVarP(&syntaxCheckServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runSyntaxCheck(cmd *cobra.Command, args []string) error {
+func runSyntaxCheck(cmd *cobra.Command, args[]string) error {
 	remotePath := paths.ToRemote(args[0])
 
 	client, _, err := getClient(syntaxCheckServer)
@@ -37,21 +37,21 @@ func runSyntaxCheck(cmd *cobra.Command, args []string) error {
 
 	switch ext {
 	case ".py":
-		checkCmd = fmt.Sprintf("python3 -m py_compile %s 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("python3 -m py_compile '%s' 2>&1", remotePath)
 	case ".js":
-		checkCmd = fmt.Sprintf("node --check %s 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("node --check '%s' 2>&1", remotePath)
 	case ".ts":
-		checkCmd = fmt.Sprintf("tsc --noEmit %s 2>&1 || node --check %s 2>&1", remotePath, remotePath)
+		checkCmd = fmt.Sprintf("tsc --noEmit '%s' 2>&1 || node --check '%s' 2>&1", remotePath, remotePath)
 	case ".go":
-		checkCmd = fmt.Sprintf("cd $(dirname %s) && go build -n ./... 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("cd \"$(dirname '%s')\" && go build -n ./... 2>&1", remotePath)
 	case ".sh", ".bash":
-		checkCmd = fmt.Sprintf("bash -n %s 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("bash -n '%s' 2>&1", remotePath)
 	case ".rb":
-		checkCmd = fmt.Sprintf("ruby -c %s 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("ruby -c '%s' 2>&1", remotePath)
 	case ".php":
-		checkCmd = fmt.Sprintf("php -l %s 2>&1", remotePath)
+		checkCmd = fmt.Sprintf("php -l '%s' 2>&1", remotePath)
 	case ".json":
-		checkCmd = fmt.Sprintf("python3 -m json.tool %s > /dev/null 2>&1 && echo 'JSON válido' || echo 'JSON inválido'", remotePath)
+		checkCmd = fmt.Sprintf("python3 -m json.tool '%s' > /dev/null 2>&1 && echo 'JSON válido' || echo 'JSON inválido'", remotePath)
 	case ".yaml", ".yml":
 		checkCmd = fmt.Sprintf("python3 -c \"import yaml; yaml.safe_load(open('%s'))\" 2>&1 && echo 'YAML válido' || echo 'Error en YAML'", remotePath)
 	default:

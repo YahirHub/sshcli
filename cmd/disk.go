@@ -21,7 +21,7 @@ func init() {
 	diskCmd.Flags().StringVarP(&diskServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runDisk(cmd *cobra.Command, args []string) error {
+func runDisk(cmd *cobra.Command, args[]string) error {
 	client, _, err := getClient(diskServer)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func runDisk(cmd *cobra.Command, args []string) error {
 		if remotePath == "/" {
 			diskCommand = "df -h /"
 		} else {
-			diskCommand = fmt.Sprintf("du -sh %s/* 2>/dev/null | sort -rh | head -20", remotePath)
+			diskCommand = fmt.Sprintf("du -sh '%s'/* 2>/dev/null | sort -rh | head -20", remotePath)
 		}
 	} else {
 		diskCommand = "df -h"

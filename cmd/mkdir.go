@@ -12,7 +12,7 @@ var (
 )
 
 var mkdirCmd = &cobra.Command{
-	Use:   "mkdir [ruta_remota]",
+	Use:   "mkdir[ruta_remota]",
 	Short: "Crea un directorio en el servidor remoto",
 	Long: `Crea un directorio en el servidor remoto.
 Usa -p para crear directorios padres si no existen.
@@ -43,7 +43,7 @@ func runMkdir(cmd *cobra.Command, args []string) error {
 	if mkdirParents {
 		mkdirCommand += " -p"
 	}
-	mkdirCommand += " " + remotePath
+	mkdirCommand += fmt.Sprintf(" '%s'", remotePath)
 
 	if _, err := client.Run(mkdirCommand); err != nil {
 		return fmt.Errorf("error al crear directorio: %v", err)

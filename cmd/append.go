@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,7 @@ func init() {
 	appendCmd.Flags().StringVarP(&appendServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runAppend(cmd *cobra.Command, args []string) error {
+func runAppend(cmd *cobra.Command, args[]string) error {
 	remotePath := cleanRemotePath(args[0])
 	content := args[1]
 
@@ -31,7 +32,9 @@ func runAppend(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	appendCommand := fmt.Sprintf("echo '%s' >> %s", content, remotePath)
+	// Escapar comillas simples en el contenido para que no rompa el comando bash
+	safeContent := strings.ReplaceAll(content, "'", "'\"'\"'")
+	appendCommand := fmt.Sprintf("echo '%s' >> '%s'", safeContent, remotePath)
 
 	if _, err := client.Run(appendCommand); err != nil {
 		return fmt.Errorf("error al agregar contenido: %v", err)

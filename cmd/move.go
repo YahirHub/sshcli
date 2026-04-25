@@ -28,24 +28,21 @@ func init() {
 }
 
 func runMove(cmd *cobra.Command, args []string) error {
-	// 1. Normalizar rutas usando el motor global
 	source := paths.ToRemote(args[0])
 	dest := paths.ToRemote(args[1])
 
-	// 2. Obtener cliente
 	client, _, err := getClient(moveServer)
 	if err != nil {
 		return fmt.Errorf("error de conexión: %v", err)
 	}
 	defer client.Close()
 
-	// 3. Ejecutar comando mv con rutas protegidas por comillas simples
 	moveCommand := fmt.Sprintf("mv '%s' '%s'", source, dest)
 
 	if _, err := client.Run(moveCommand); err != nil {
 		return fmt.Errorf("error al mover en el servidor: %v", err)
 	}
 
-	fmt.Printf("✓ Movido exitosamente: %s -> %s\n", source, dest)
+	fmt.Printf("[OK] Movido exitosamente: %s -> %s\n", source, dest)
 	return nil
 }

@@ -34,66 +34,49 @@ func init() {
 	execCmd.Flags().BoolVar(&execNoTTY, "no-tty", false, "Forzar modo normal (ignora config)")
 }
 
-func runExec(cmd *cobra.Command, args []string) error {
+func runExec(cmd *cobra.Command, args[]string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("error de configuración: %v", err)
+		return fmt.Errorf("error de configuracion: %v", err)
 	}
 
-	var server *config.Server
-	if execServer != "" {
-		server, err = cfg.GetServer(execServer)
-	} else {
-		server, err = cfg.GetActiveServer()
-	}
-	if err != nil {
-		return err
-	}
-
-	// Simplificado: No intentamos limpiar comandos complejos automáticamente
-	// para evitar añadir slashes innecesarios al principio.
 	command := strings.Join(args, " ")
 
-	sshConfig := &ssh.ClientConfig{
-		User: server.User,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(server.Password),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	addr := fmt.Sprintf("%s:%d", server.Host, server.Port)
-	client, err := ssh.Dial("tcp", addr, sshConfig)
+	client, _, err := getClient(execServer)
 	if err != nil {
-		return fmt.Errorf("error de conexión: %v", err)
+		return fmt.Errorf("error de conexion: %v", err)
 	}
 	defer client.Close()
 
-	session, err := client.NewSession()
-	if err != nil {
-		return fmt.Errorf("error de sesión: %v", err)
-	}
-	defer session.Close()
-
 	useTTY := (execTTY || cfg.DefaultTTY) && !execNoTTY
 
-	if useTTY {
+	fd := int(os.Stdin.Fd())
+	isTerm := term.IsTerminal(fd)
+
+	if useTTY && isTerm {
+		session, err := client.NewSession()
+		if err != nil {
+			return fmt.Errorf("error de sesion: %v", err)
+		}
+		defer session.Close()
 		return runInteractiveExec(session, command)
 	}
 
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
-	return session.Run(command)
+	// For non-interactive, use client.Run to safely capture and print all output
+	output, err := client.Run(command)
+	if output != "" {
+		fmt.Print(output)
+	}
+	if err != nil {
+		return fmt.Errorf("ejecucion fallida: %v", err)
+	}
+
+	return nil
 }
 
 func runInteractiveExec(session *ssh.Session, command string) error {
 	fd := int(os.Stdin.Fd())
-	if !term.IsTerminal(fd) {
-		session.Stdout = os.Stdout
-		session.Stderr = os.Stderr
-		return session.Run(command)
-	}
-
+	
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
 		return err

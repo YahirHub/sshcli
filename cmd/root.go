@@ -21,7 +21,7 @@ ANÁLISIS DE CONTEXTO (NUEVO):
 
 GESTIÓN DE CONTENEDORES (NUEVO):
   sshcli docker ps                # Listar contenedores activos
-  sshcli docker logs [ID]         # Ver logs de un contenedor
+  sshcli docker logs[ID]         # Ver logs de un contenedor
   sshcli docker stats             # Ver consumo de CPU/RAM de contenedores
   sshcli docker exec [ID] "cmd"   # Ejecutar comando dentro de un contenedor
 
@@ -57,6 +57,6 @@ func Execute() error {
 }
 
 func init() {
-	// Deshabilitar el comando de completado por defecto para mantener la ayuda limpia
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.SilenceUsage = true
 }

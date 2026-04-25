@@ -37,7 +37,7 @@ func runFindCode(cmd *cobra.Command, args []string) error {
 	defer client.Close()
 
 	// Busca el patrón con número de línea, ignorando binarios y carpetas .git
-	grepCmd := fmt.Sprintf("grep -rnE '%s' %s --exclude-dir=.git --color=never", pattern, remotePath)
+	grepCmd := fmt.Sprintf("grep -rnE '%s' '%s' --exclude-dir=.git --color=never", pattern, remotePath)
 	output, err := client.Run(grepCmd)
 	if err != nil {
 		fmt.Println("No se encontraron coincidencias.")

@@ -50,7 +50,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 	if removeForce {
 		rmCommand += " -f"
 	}
-	rmCommand += " " + remotePath
+	rmCommand += fmt.Sprintf(" '%s'", remotePath)
 
 	if _, err := client.Run(rmCommand); err != nil {
 		return fmt.Errorf("error al eliminar: %v", err)

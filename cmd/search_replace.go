@@ -14,7 +14,7 @@ var (
 )
 
 var searchReplaceCmd = &cobra.Command{
-	Use:   "search-replace [archivo] [buscar] [reemplazar]",
+	Use:   "search-replace[archivo] [buscar] [reemplazar]",
 	Short: "Busca y reemplaza texto en un archivo remoto",
 	Long: `Busca y reemplaza una cadena de texto dentro de un archivo en el servidor remoto.
 Herramienta quirúrgica para modificar configuraciones o código.
@@ -39,20 +39,17 @@ func init() {
 	searchReplaceCmd.Flags().StringVarP(&searchReplaceServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runSearchReplace(cmd *cobra.Command, args []string) error {
-	// 1. Normalizar la ruta remota usando el motor de rutas global
+func runSearchReplace(cmd *cobra.Command, args[]string) error {
 	remotePath := paths.ToRemote(args[0])
 	search := args[1]
 	replace := args[2]
 
-	// 2. Obtener el cliente SSH/SFTP
 	client, _, err := getClient(searchReplaceServer)
 	if err != nil {
 		return fmt.Errorf("error de conexión: %v", err)
 	}
 	defer client.Close()
 
-	// 3. Leer el contenido del archivo remoto
 	data, err := client.ReadFile(remotePath)
 	if err != nil {
 		return fmt.Errorf("error al leer archivo remoto en %s: %v", remotePath, err)
@@ -62,7 +59,6 @@ func runSearchReplace(cmd *cobra.Command, args []string) error {
 	var newContent string
 	var count int
 
-	// 4. Realizar el reemplazo según las flags
 	if searchReplaceAll {
 		count = strings.Count(content, search)
 		if count > 0 {
@@ -75,18 +71,15 @@ func runSearchReplace(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// 5. Verificar si hubo cambios
 	if count == 0 {
 		fmt.Printf("Sin coincidencias para '%s' en %s\n", search, remotePath)
 		return nil
 	}
 
-	// 6. Escribir el nuevo contenido de vuelta al servidor
-	// Mantenemos permisos estándar de lectura/escritura (0644)
-	if err := client.WriteFile(remotePath, []byte(newContent), 0644); err != nil {
+	if err := client.WriteFile(remotePath,[]byte(newContent), 0644); err != nil {
 		return fmt.Errorf("error al escribir los cambios en el servidor: %v", err)
 	}
 
-	fmt.Printf("✓ Reemplazado exitosamente: %d ocurrencia(s) en %s\n", count, remotePath)
+	fmt.Printf("[OK] Reemplazado exitosamente: %d ocurrencia(s) en %s\n", count, remotePath)
 	return nil
 }

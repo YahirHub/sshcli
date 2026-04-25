@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -21,7 +22,7 @@ type Client struct {
 func Connect(host string, port int, user, password string) (*Client, error) {
 	config := &ssh.ClientConfig{
 		User: user,
-		Auth: []ssh.AuthMethod{
+		Auth:[]ssh.AuthMethod{
 			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -57,11 +58,16 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// NewSession crea una nueva sesión SSH raw para uso interactivo
+func (c *Client) NewSession() (*ssh.Session, error) {
+	return c.sshClient.NewSession()
+}
+
 // Run ejecuta un comando en el servidor remoto y retorna la salida
 func (c *Client) Run(command string) (string, error) {
 	session, err := c.sshClient.NewSession()
 	if err != nil {
-		return "", fmt.Errorf("fallo al crear sesión: %v", err)
+		return "", fmt.Errorf("fallo al crear sesion: %v", err)
 	}
 	defer session.Close()
 
@@ -73,8 +79,9 @@ func (c *Client) Run(command string) (string, error) {
 	
 	output := stdout.String()
 	if err != nil {
-		if stderr.Len() > 0 {
-			return output, fmt.Errorf("%s", stderr.String())
+		errStr := strings.TrimSpace(stderr.String())
+		if errStr != "" {
+			return output, fmt.Errorf("%s", errStr)
 		}
 		return output, err
 	}
@@ -83,12 +90,11 @@ func (c *Client) Run(command string) (string, error) {
 }
 
 // WriteFile escribe contenido a un archivo remoto
-func (c *Client) WriteFile(remotePath string, data []byte, perm os.FileMode) error {
-	// SFTP Create falla si el directorio no existe. 
-	// El comando 'mkdir -p' debe haber sido llamado antes en la capa superior (cmd).
+func (c *Client) WriteFile(remotePath string, data[]byte, perm os.FileMode) error {
+	// SFTP Create falla si el directorio no existe.
 	file, err := c.sftpClient.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 	if err != nil {
-		return fmt.Errorf("fallo al abrir/crear archivo remoto (¿existe la carpeta?): %v", err)
+		return fmt.Errorf("fallo al abrir/crear archivo remoto (existe la carpeta?): %v", err)
 	}
 	defer file.Close()
 

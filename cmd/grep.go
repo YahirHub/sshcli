@@ -33,7 +33,7 @@ func init() {
 	grepCmd.Flags().StringVarP(&grepServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runGrep(cmd *cobra.Command, args []string) error {
+func runGrep(cmd *cobra.Command, args[]string) error {
 	pattern := args[0]
 	remotePath := cleanRemotePath(args[1])
 
@@ -50,7 +50,7 @@ func runGrep(cmd *cobra.Command, args []string) error {
 	if grepIgnore {
 		grepCommand += " -i"
 	}
-	grepCommand += fmt.Sprintf(" -n '%s' %s 2>/dev/null", pattern, remotePath)
+	grepCommand += fmt.Sprintf(" -n '%s' '%s' 2>/dev/null", pattern, remotePath)
 
 	output, err := client.Run(grepCommand)
 	if err != nil {

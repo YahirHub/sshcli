@@ -32,7 +32,7 @@ func init() {
 	envCmd.Flags().StringVarP(&envServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runEnv(cmd *cobra.Command, args []string) error {
+func runEnv(cmd *cobra.Command, args[]string) error {
 	client, _, err := getClient(envServer)
 	if err != nil {
 		return fmt.Errorf("error: %v", err)
@@ -41,7 +41,7 @@ func runEnv(cmd *cobra.Command, args []string) error {
 
 	var envCommand string
 	if len(args) > 0 {
-		envCommand = fmt.Sprintf("cat %s 2>/dev/null || echo 'Archivo no encontrado'", args[0])
+		envCommand = fmt.Sprintf("cat '%s' 2>/dev/null || echo 'Archivo no encontrado'", cleanRemotePath(args[0]))
 	} else {
 		envCommand = "env | sort"
 	}
