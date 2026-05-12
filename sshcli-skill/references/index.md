@@ -79,8 +79,19 @@ Use this file as the map. Load only the references needed for the current task.
 | Comando | Referencia | Descripción |
 |---------|-----------|-------------|
 | `server list` | `commands/server.md` | Listar servidores |
+| `server search` | `commands/server.md` | Buscar servidor |
 | `server add` | `commands/server.md` | Agregar servidor |
+| `server edit` | `commands/server.md` | Editar servidor |
+| `server copy` | `commands/server.md` | Duplicar servidor |
+| `server sync-tags` | `commands/server.md` | Sincronizar tags |
 | `server use` | `commands/server.md` | Cambiar servidor |
+| `server rename` | `commands/server.md` | Renombrar servidor |
+| `server test` | `commands/server.md` | Probar conexión |
+| `server ping` | `commands/server.md` | Medir latencia SSH |
+| `server doctor` | `commands/server.md` | Diagnóstico del servidor |
+| `server export` | `commands/server.md` | Exportar configuración |
+| `server import` | `commands/server.md` | Importar configuración |
+| `server set-pass` | `commands/server.md` | Actualizar contraseña guardada |
 | `server info` | `commands/server.md` | Info de servidor |
 | `server remove` | `commands/server.md` | Eliminar servidor |
 | `config show` | `commands/config.md` | Ver configuración |

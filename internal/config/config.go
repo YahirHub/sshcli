@@ -6,17 +6,30 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 const configFileName = ".sshcli.conf"
 
 // Server representa un servidor SSH configurado
 type Server struct {
-	Name     string `json:"name"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
+	Name     string   `json:"name"`
+	Host     string   `json:"host"`
+	Port     int      `json:"port"`
+	User     string   `json:"user"`
+	Password string   `json:"password"`
+	Tags     []string `json:"tags,omitempty"`
+}
+
+// Clone crea una copia profunda del servidor
+func (s *Server) Clone() *Server {
+	if s == nil {
+		return nil
+	}
+	clone := *s
+	clone.Tags = append([]string(nil), s.Tags...)
+	clone.Tags = normalizeTags(clone.Tags)
+	return &clone
 }
 
 // Config representa la configuración completa con múltiples servidores
@@ -85,6 +98,14 @@ func Load() (*Config, error) {
 	if cfg.Servers == nil {
 		cfg.Servers = make(map[string]*Server)
 	}
+	for name, server := range cfg.Servers {
+		if server == nil {
+			delete(cfg.Servers, name)
+			continue
+		}
+		server.Name = name
+		server.Tags = normalizeTags(server.Tags)
+	}
 
 	return &cfg, nil
 }
@@ -99,11 +120,22 @@ func LoadOrCreate() *Config {
 }
 
 // AddServer agrega un servidor a la configuración
-func (c *Config) AddServer(server *Server) {
-	c.Servers[server.Name] = server
+func (c *Config) AddServer(server *Server, force bool) error {
+	if server == nil {
+		return fmt.Errorf("servidor inválido")
+	}
+	if server.Name == "" {
+		return fmt.Errorf("el nombre del servidor no puede estar vacío")
+	}
+	if _, exists := c.Servers[server.Name]; exists && !force {
+		return fmt.Errorf("ya existe un servidor con el nombre '%s'", server.Name)
+	}
+	server.Tags = normalizeTags(server.Tags)
+	c.Servers[server.Name] = server.Clone()
 	if c.ActiveServer == "" {
 		c.ActiveServer = server.Name
 	}
+	return nil
 }
 
 // RemoveServer elimina un servidor de la configuración
@@ -112,13 +144,40 @@ func (c *Config) RemoveServer(name string) error {
 		return fmt.Errorf("servidor '%s' no encontrado", name)
 	}
 	delete(c.Servers, name)
-	
+
 	if c.ActiveServer == name {
 		c.ActiveServer = ""
-		for n := range c.Servers {
+		for _, n := range c.ListServers() {
 			c.ActiveServer = n
 			break
 		}
+	}
+	return nil
+}
+
+// RenameServer renombra un servidor existente validando que el nuevo nombre no exista
+func (c *Config) RenameServer(oldName, newName string) error {
+	if oldName == "" || newName == "" {
+		return fmt.Errorf("los nombres de servidor no pueden estar vacíos")
+	}
+	if oldName == newName {
+		return fmt.Errorf("el nombre nuevo debe ser diferente al actual")
+	}
+
+	server, exists := c.Servers[oldName]
+	if !exists {
+		return fmt.Errorf("servidor '%s' no encontrado", oldName)
+	}
+	if _, exists := c.Servers[newName]; exists {
+		return fmt.Errorf("ya existe un servidor con el nombre '%s'", newName)
+	}
+
+	delete(c.Servers, oldName)
+	server.Name = newName
+	c.Servers[newName] = server
+
+	if c.ActiveServer == oldName {
+		c.ActiveServer = newName
 	}
 	return nil
 }
@@ -176,4 +235,28 @@ func Delete() error {
 		return err
 	}
 	return os.Remove(path)
+}
+
+func normalizeTags(tags []string) []string {
+	if len(tags) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	result := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		result = append(result, tag)
+	}
+	sort.Strings(result)
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
