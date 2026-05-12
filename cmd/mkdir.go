@@ -12,8 +12,9 @@ var (
 )
 
 var mkdirCmd = &cobra.Command{
-	Use:   "mkdir[ruta_remota]",
-	Short: "Crea un directorio en el servidor remoto",
+	Use:     "mkdir [ruta_remota]",
+	Aliases: []string{"mkdir[ruta_remota]"},
+	Short:   "Crea un directorio en el servidor remoto",
 	Long: `Crea un directorio en el servidor remoto.
 Usa -p para crear directorios padres si no existen.
 

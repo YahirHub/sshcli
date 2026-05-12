@@ -42,7 +42,7 @@ func runInsertLine(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("número de línea inválido: %v", err)
 	}
-	content := args[2]
+	content := decodeEscapes(args[2])
 
 	client, _, err := getClient(insertLineServer)
 	if err != nil {
@@ -57,20 +57,24 @@ func runInsertLine(cmd *cobra.Command, args []string) error {
 	}
 
 	lines := strings.Split(string(data), "\n")
-	
-	// Validar número de línea
-	if lineNum < 0 {
-		lineNum = 0
+
+	// Convertir de número de línea humano a índice de inserción.
+	// 0 inserta al inicio; 1 inserta antes de la línea 1; N inserta antes de la línea N.
+	insertAt := 0
+	if lineNum <= 0 {
+		insertAt = 0
+	} else {
+		insertAt = lineNum - 1
 	}
-	if lineNum > len(lines) {
-		lineNum = len(lines)
+	if insertAt > len(lines) {
+		insertAt = len(lines)
 	}
 
 	// Insertar línea
 	newLines := make([]string, 0, len(lines)+1)
-	newLines = append(newLines, lines[:lineNum]...)
+	newLines = append(newLines, lines[:insertAt]...)
 	newLines = append(newLines, content)
-	newLines = append(newLines, lines[lineNum:]...)
+	newLines = append(newLines, lines[insertAt:]...)
 
 	newContent := strings.Join(newLines, "\n")
 
@@ -78,6 +82,6 @@ func runInsertLine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error al escribir archivo: %v", err)
 	}
 
-	fmt.Printf("Línea insertada en posición %d: %s\n", lineNum+1, remotePath)
+	fmt.Printf("Línea insertada en posición %d: %s\n", insertAt+1, remotePath)
 	return nil
 }

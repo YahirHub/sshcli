@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"strconv"
+	"strings"
+
 	"sshcli/internal/config"
 	"sshcli/internal/paths"
 	"sshcli/internal/ssh"
@@ -42,4 +45,15 @@ func cleanRemotePath(p string) string {
 // cleanLocalPath expone la lógica de paths locales de forma global
 func cleanLocalPath(p string) string {
 	return paths.ToLocal(p)
+}
+
+// decodeEscapes convierte secuencias comunes como \n, \t, \r y comillas escapadas.
+// Si no puede decodificar, devuelve el texto original.
+func decodeEscapes(s string) string {
+	quoted := `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
+	decoded, err := strconv.Unquote(quoted)
+	if err != nil {
+		return s
+	}
+	return decoded
 }

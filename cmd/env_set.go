@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -35,8 +37,14 @@ func init() {
 }
 
 func runEnvSet(cmd *cobra.Command, args []string) error {
-	envFile := args[0]
-	keyValue := args[1]
+	envFile := cleanRemotePath(args[0])
+	keyValue := decodeEscapes(args[1])
+
+	key, _, ok := strings.Cut(keyValue, "=")
+	if !ok || strings.TrimSpace(key) == "" {
+		return fmt.Errorf("formato inválido, usar: KEY=value")
+	}
+	key = strings.TrimSpace(key)
 
 	client, _, err := getClient(envSetServer)
 	if err != nil {
@@ -44,36 +52,49 @@ func runEnvSet(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	// Extraer KEY del KEY=value
-	var key string
-	for i, c := range keyValue {
-		if c == '=' {
-			key = keyValue[:i]
-			break
+	var content string
+	if client.FileExists(envFile) {
+		data, err := client.ReadFile(envFile)
+		if err != nil {
+			return fmt.Errorf("error al leer .env: %v", err)
+		}
+		content = strings.ReplaceAll(string(data), "\r\n", "\n")
+	}
+
+	lines := []string{}
+	if content != "" {
+		lines = strings.Split(content, "\n")
+	}
+
+	updated := false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, key+"=") {
+			lines[i] = keyValue
+			updated = true
 		}
 	}
 
-	if key == "" {
-		return fmt.Errorf("formato inválido, usar: KEY=value")
+	if !updated {
+		for len(lines) > 0 && lines[len(lines)-1] == "" {
+			lines = lines[:len(lines)-1]
+		}
+		lines = append(lines, keyValue)
 	}
 
-	// Comando para actualizar o agregar
-	// Primero intenta actualizar, si no existe, agrega
-	envCommand := fmt.Sprintf(`
-		if grep -q "^%s=" %s 2>/dev/null; then
-			sed -i "s|^%s=.*|%s|" %s
-			echo "Actualizado: %s"
-		else
-			echo "%s" >> %s
-			echo "Agregado: %s"
-		fi
-	`, key, envFile, key, keyValue, envFile, key, keyValue, envFile, key)
-
-	output, err := client.Run(envCommand)
-	if err != nil {
-		return fmt.Errorf("error al establecer variable: %v", err)
+	newContent := strings.Join(lines, "\n")
+	if newContent != "" && !strings.HasSuffix(newContent, "\n") {
+		newContent += "\n"
 	}
 
-	fmt.Print(output)
+	if err := client.WriteFile(envFile, []byte(newContent), os.FileMode(0644)); err != nil {
+		return fmt.Errorf("error al escribir .env: %v", err)
+	}
+
+	if updated {
+		fmt.Printf("Actualizado: %s\n", key)
+	} else {
+		fmt.Printf("Agregado: %s\n", key)
+	}
 	return nil
 }

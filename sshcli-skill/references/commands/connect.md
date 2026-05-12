@@ -6,16 +6,17 @@ Abre una terminal SSH interactiva con el servidor activo.
 ## Sintaxis
 ```bash
 sshcli connect
+sshcli connect --server <nombre>
 ```
 
 ## Ejemplos
 ```bash
-# Conectar al servidor activo
 sshcli connect
+sshcli connect --server prod
 ```
 
 ## Notas
-- Requiere servidor activo (`sshcli server use`)
-- Sesión interactiva con TTY
-- Útil para comandos que requieren interacción
-- Ctrl+D para salir
+- Requiere servidor activo o `--server`.
+- Solicita PTY remoto.
+- Requiere una terminal local real para uso cómodo.
+- Ctrl+D o `exit` para salir.

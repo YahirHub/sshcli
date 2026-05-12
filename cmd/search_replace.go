@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 	"sshcli/internal/paths"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -14,8 +14,9 @@ var (
 )
 
 var searchReplaceCmd = &cobra.Command{
-	Use:   "search-replace[archivo] [buscar] [reemplazar]",
-	Short: "Busca y reemplaza texto en un archivo remoto",
+	Use:     "search-replace [archivo] [buscar] [reemplazar]",
+	Aliases: []string{"search-replace[archivo]"},
+	Short:   "Busca y reemplaza texto en un archivo remoto",
 	Long: `Busca y reemplaza una cadena de texto dentro de un archivo en el servidor remoto.
 Herramienta quirúrgica para modificar configuraciones o código.
 
@@ -39,7 +40,7 @@ func init() {
 	searchReplaceCmd.Flags().StringVarP(&searchReplaceServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runSearchReplace(cmd *cobra.Command, args[]string) error {
+func runSearchReplace(cmd *cobra.Command, args []string) error {
 	remotePath := paths.ToRemote(args[0])
 	search := args[1]
 	replace := args[2]
@@ -76,7 +77,7 @@ func runSearchReplace(cmd *cobra.Command, args[]string) error {
 		return nil
 	}
 
-	if err := client.WriteFile(remotePath,[]byte(newContent), 0644); err != nil {
+	if err := client.WriteFile(remotePath, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("error al escribir los cambios en el servidor: %v", err)
 	}
 

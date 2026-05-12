@@ -2,16 +2,23 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+
 	"sshcli/internal/paths"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	treeDepth   int
-	treeDirs    bool
-	treeServer  string
+	treeDepth  int
+	treeDirs   bool
+	treeServer string
 )
+
+type treeNode struct {
+	children map[string]*treeNode
+}
 
 var treeCmd = &cobra.Command{
 	Use:   "tree [directorio]",
@@ -27,7 +34,7 @@ func init() {
 	treeCmd.Flags().StringVarP(&treeServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runTree(cmd *cobra.Command, args[]string) error {
+func runTree(cmd *cobra.Command, args []string) error {
 	remotePath := "/"
 	if len(args) > 0 {
 		remotePath = paths.ToRemote(args[0])
@@ -39,25 +46,113 @@ func runTree(cmd *cobra.Command, args[]string) error {
 	}
 	defer client.Close()
 
-	var treeCommand string
+	var nativeTreeCmd string
 	if treeDirs {
-		treeCommand = fmt.Sprintf("tree -d -L %d '%s' 2>/dev/null || find '%s' -maxdepth %d -type d | head -100", 
-			treeDepth, remotePath, remotePath, treeDepth)
+		nativeTreeCmd = fmt.Sprintf("tree -d -L %d '%s' 2>/dev/null", treeDepth, remotePath)
 	} else {
-		treeCommand = fmt.Sprintf("tree -L %d '%s' 2>/dev/null || find '%s' -maxdepth %d | head -200", 
-			treeDepth, remotePath, remotePath, treeDepth)
+		nativeTreeCmd = fmt.Sprintf("tree -L %d '%s' 2>/dev/null", treeDepth, remotePath)
 	}
 
-	output, err := client.Run(treeCommand)
+	output, err := client.Run(nativeTreeCmd)
+	if err == nil && strings.TrimSpace(output) != "" {
+		fmt.Print(output)
+		return nil
+	}
+
+	findCmd := fmt.Sprintf("find '%s' -maxdepth %d", remotePath, treeDepth)
+	if treeDirs {
+		findCmd += " -type d"
+	}
+	findCmd += " 2>/dev/null | sort | head -200"
+
+	output, err = client.Run(findCmd)
 	if err != nil {
-		// Fallback manual si 'tree' no está instalado
-		fallbackCmd := fmt.Sprintf("find '%s' -maxdepth %d 2>/dev/null | sort | head -200", remotePath, treeDepth)
-		output, _ = client.Run(fallbackCmd)
+		return fmt.Errorf("error al obtener estructura: %v", err)
 	}
 
-	if output == "" {
-		fmt.Printf("Estructura de %s (vía find):\n", remotePath)
+	lines := []string{}
+	for _, line := range strings.Split(strings.ReplaceAll(output, "\r\n", "\n"), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
 	}
-	fmt.Print(output)
+
+	if len(lines) == 0 {
+		fmt.Println(remotePath)
+		return nil
+	}
+
+	fmt.Print(renderTreeFromPaths(remotePath, lines))
 	return nil
+}
+
+func renderTreeFromPaths(rootPath string, fullPaths []string) string {
+	root := &treeNode{children: map[string]*treeNode{}}
+	for _, full := range fullPaths {
+		addTreePath(root, rootPath, full)
+	}
+
+	var b strings.Builder
+	b.WriteString(rootPath)
+	b.WriteString("\n")
+	renderTreeChildren(&b, root, "")
+	return b.String()
+}
+
+func addTreePath(root *treeNode, rootPath, fullPath string) {
+	if fullPath == rootPath {
+		return
+	}
+
+	rel := strings.TrimPrefix(fullPath, rootPath)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" {
+		return
+	}
+
+	parts := strings.Split(rel, "/")
+	cur := root
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		if cur.children == nil {
+			cur.children = map[string]*treeNode{}
+		}
+		next, ok := cur.children[part]
+		if !ok {
+			next = &treeNode{children: map[string]*treeNode{}}
+			cur.children[part] = next
+		}
+		cur = next
+	}
+}
+
+func renderTreeChildren(b *strings.Builder, node *treeNode, prefix string) {
+	if node == nil || len(node.children) == 0 {
+		return
+	}
+
+	keys := make([]string, 0, len(node.children))
+	for k := range node.children {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i, k := range keys {
+		last := i == len(keys)-1
+		branch := "├── "
+		nextPrefix := prefix + "│   "
+		if last {
+			branch = "└── "
+			nextPrefix = prefix + "    "
+		}
+
+		b.WriteString(prefix)
+		b.WriteString(branch)
+		b.WriteString(k)
+		b.WriteString("\n")
+		renderTreeChildren(b, node.children[k], nextPrefix)
+	}
 }

@@ -14,14 +14,15 @@ import (
 
 var (
 	downloadServer  string
-	downloadExclude[]string
+	downloadExclude []string
 	downloadSync    bool
 	downloadDryRun  bool
 )
 
 var downloadCmd = &cobra.Command{
-	Use:   "download[origen_remoto] [destino_local]",
-	Short: "Descarga un archivo o carpeta del servidor remoto",
+	Use:     "download [origen_remoto] [destino_local]",
+	Aliases: []string{"download[origen_remoto]"},
+	Short:   "Descarga un archivo o carpeta del servidor remoto",
 	Long: `Descarga archivos. Soporta rutas locales estilo /c/... para Windows.
 Limpia automáticamente rutas remotas si el shell las mutila.`,
 	Args: cobra.ExactArgs(2),
@@ -31,7 +32,7 @@ Limpia automáticamente rutas remotas si el shell las mutila.`,
 func init() {
 	rootCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringVarP(&downloadServer, "server", "s", "", "Servidor específico a usar")
-	downloadCmd.Flags().StringArrayVarP(&downloadExclude, "exclude", "e",[]string{}, "Patrones a excluir")
+	downloadCmd.Flags().StringArrayVarP(&downloadExclude, "exclude", "e", []string{}, "Patrones a excluir")
 	downloadCmd.Flags().BoolVar(&downloadSync, "sync", false, "Modo sincronización")
 	downloadCmd.Flags().BoolVar(&downloadDryRun, "dry-run", false, "Modo dry-run")
 }
@@ -97,7 +98,7 @@ func downloadFileNewSmart(client *ssh.Client, remotePath, localPath string, dryR
 	return nil
 }
 
-func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, excludePatterns[]string, sync bool, dryRun bool) error {
+func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, excludePatterns []string, sync bool, dryRun bool) error {
 	if !dryRun {
 		os.MkdirAll(localDir, 0755)
 	}
@@ -133,8 +134,8 @@ func downloadDirectoryNew(client *ssh.Client, remoteDir, localDir string, exclud
 	return nil
 }
 
-func processDownloadExcludes(excludes[]string) []string {
-	var patterns[]string
+func processDownloadExcludes(excludes []string) []string {
+	var patterns []string
 	for _, exc := range excludes {
 		parts := strings.Split(exc, ",")
 		for _, p := range parts {

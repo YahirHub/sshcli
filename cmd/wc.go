@@ -14,8 +14,9 @@ var (
 )
 
 var wcCmd = &cobra.Command{
-	Use:   "wc[archivo]",
-	Short: "Cuenta líneas, palabras y bytes de un archivo",
+	Use:     "wc [archivo]",
+	Aliases: []string{"wc[archivo]"},
+	Short:   "Cuenta líneas, palabras y bytes de un archivo",
 	Long: `Cuenta líneas, palabras y bytes de un archivo remoto.
 Por defecto muestra las tres métricas.
 
@@ -35,7 +36,7 @@ func init() {
 	wcCmd.Flags().StringVarP(&wcServer, "server", "s", "", "Servidor específico a usar")
 }
 
-func runWc(cmd *cobra.Command, args[]string) error {
+func runWc(cmd *cobra.Command, args []string) error {
 	remotePath := cleanRemotePath(args[0])
 
 	client, _, err := getClient(wcServer)

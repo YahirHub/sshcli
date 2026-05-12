@@ -22,9 +22,9 @@ var (
 var execCmd = &cobra.Command{
 	Use:   "exec [comando]",
 	Short: "Ejecuta un comando en el servidor remoto",
-	Long: `Ejecuta un comando en el servidor remoto configurado.`,
-	Args: cobra.MinimumNArgs(1),
-	RunE: runExec,
+	Long:  `Ejecuta un comando en el servidor remoto configurado.`,
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  runExec,
 }
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 	execCmd.Flags().BoolVar(&execNoTTY, "no-tty", false, "Forzar modo normal (ignora config)")
 }
 
-func runExec(cmd *cobra.Command, args[]string) error {
+func runExec(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("error de configuracion: %v", err)
@@ -49,11 +49,7 @@ func runExec(cmd *cobra.Command, args[]string) error {
 	defer client.Close()
 
 	useTTY := (execTTY || cfg.DefaultTTY) && !execNoTTY
-
-	fd := int(os.Stdin.Fd())
-	isTerm := term.IsTerminal(fd)
-
-	if useTTY && isTerm {
+	if useTTY {
 		session, err := client.NewSession()
 		if err != nil {
 			return fmt.Errorf("error de sesion: %v", err)
@@ -62,7 +58,6 @@ func runExec(cmd *cobra.Command, args[]string) error {
 		return runInteractiveExec(session, command)
 	}
 
-	// For non-interactive, use client.Run to safely capture and print all output
 	output, err := client.Run(command)
 	if output != "" {
 		fmt.Print(output)
@@ -76,16 +71,20 @@ func runExec(cmd *cobra.Command, args[]string) error {
 
 func runInteractiveExec(session *ssh.Session, command string) error {
 	fd := int(os.Stdin.Fd())
-	
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		return err
-	}
-	defer term.Restore(fd, oldState)
+	isTerm := term.IsTerminal(fd)
 
-	width, height, err := term.GetSize(fd)
-	if err != nil {
-		width, height = 80, 24
+	if isTerm {
+		oldState, err := term.MakeRaw(fd)
+		if err == nil {
+			defer term.Restore(fd, oldState)
+		}
+	}
+
+	width, height := 80, 24
+	if isTerm {
+		if w, h, err := term.GetSize(fd); err == nil {
+			width, height = w, h
+		}
 	}
 
 	modes := ssh.TerminalModes{

@@ -16,14 +16,11 @@ sshcli search-replace [archivo] [buscar] [reemplazar] [flags]
 
 ## Ejemplos
 ```bash
-# Reemplazar primera ocurrencia
 sshcli search-replace "/etc/nginx.conf" "80" "8080"
-
-# Reemplazar todas las ocurrencias
 sshcli search-replace "/app/config.py" "DEBUG=True" "DEBUG=False" -a
 ```
 
 ## Notas
-- Por defecto reemplaza solo la primera ocurrencia
-- Usa `-a` para reemplazar todas
-- Operación segura: lee, modifica en memoria, sobreescribe
+- Por defecto reemplaza solo la primera ocurrencia.
+- Usa `-a` para reemplazar todas.
+- Operación segura: lee, modifica en memoria y sobreescribe.

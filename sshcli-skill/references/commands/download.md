@@ -1,8 +1,5 @@
 # download — Descargar archivos
 
-## Descripción
-Descarga archivos del servidor remoto al local.
-
 ## Sintaxis
 ```bash
 sshcli download [origen_remoto] [destino_local] [flags]
@@ -18,14 +15,9 @@ sshcli download [origen_remoto] [destino_local] [flags]
 
 ## Ejemplos
 ```bash
-# Descargar archivo
-sshcli download "/tmp/file.txt" "/c/Users/Admin/downloads/"
-
-# Excluir archivos
-sshcli download "/var/www" "/backup/" --exclude "*.log"
+sshcli download "/tmp/file.txt" "/c/Users/Admin/downloads/file.txt"
+sshcli download "/var/www" "/c/Users/Admin/backup" --exclude "*.log"
 ```
 
 ## Notas
-- Destino local usa formato MSYS2: `/c/Users/...`
-- `--dry-run` muestra qué se descargaría sin hacerlo
-- `--sync` elimina archivos locales que no existen remotamente
+- Destino local usa formato MSYS2: `/c/Users/...`.

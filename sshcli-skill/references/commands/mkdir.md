@@ -1,8 +1,5 @@
 # mkdir — Crear directorios
 
-## Descripción
-Crea un directorio en el servidor remoto.
-
 ## Sintaxis
 ```bash
 sshcli mkdir [ruta_remota] [flags]
@@ -16,13 +13,9 @@ sshcli mkdir [ruta_remota] [flags]
 
 ## Ejemplos
 ```bash
-# Crear directorio
 sshcli mkdir "/home/user/newdir"
-
-# Crear ruta anidada
 sshcli mkdir "/home/user/a/b/c" -p
 ```
 
 ## Notas
-- La flag `-p` crea directorios padre automáticamente
-- No falla si el directorio ya existe (con `-p`)
+- `-p` crea directorios padre automáticamente.

@@ -15,14 +15,10 @@ sshcli append [ruta_remota] [contenido] [flags]
 
 ## Ejemplos
 ```bash
-# Agregar línea al final
 sshcli append "/var/log/app.log" "INFO: Application started"
-
-# Agregar contenido multilínea
-sshcli append "/tmp/data.txt" "line1\nline2\nline3"
+sshcli append "/tmp/data.txt" "\nline2\nline3"
 ```
 
 ## Notas
-- El archivo debe existir
-- Usa `\n` para newlines
-- No agrega espacio extra entre contenido existente y nuevo
+- El archivo debe existir.
+- `\n`, `\t` y `\r` se interpretan correctamente.

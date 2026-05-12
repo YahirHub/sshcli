@@ -12,20 +12,16 @@ sshcli tree [ruta] [flags]
 | Flag | Descripción |
 |------|-------------|
 | `-d, --depth` | Profundidad máxima |
+| `--dirs` | Solo directorios |
 | `-s, --server` | Servidor específico |
 
 ## Ejemplos
 ```bash
-# Árbol completo
 sshcli tree "/var/www"
-
-# Con profundidad
 sshcli tree "/home" -d 2
-
-# Mostrar solo directorios
-sshcli tree "/var" -d 1
+sshcli tree "/var" -d 1 --dirs
 ```
 
 ## Notas
-- Útil para visualizar estructura de proyectos
-- La profundidad `-d` limita la recursión
+- Si el binario `tree` no existe en el servidor, `sshcli` genera un árbol ASCII de fallback.
+- La profundidad `-d` limita la recursión.

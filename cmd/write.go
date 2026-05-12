@@ -33,14 +33,14 @@ func init() {
 	writeCmd.Flags().BoolVarP(&writeExec, "exec", "x", false, "Hacer ejecutable (755)")
 }
 
-func runWrite(cmd *cobra.Command, args[]string) error {
+func runWrite(cmd *cobra.Command, args []string) error {
 	remotePath := paths.ToRemote(args[0])
-	
-	var content[]byte
+
+	var content []byte
 	var err error
 
 	if len(args) == 2 {
-		content =[]byte(args[1])
+		content = []byte(decodeEscapes(args[1]))
 	} else {
 		content, err = io.ReadAll(os.Stdin)
 		if err != nil {

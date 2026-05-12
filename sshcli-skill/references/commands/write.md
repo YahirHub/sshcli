@@ -5,7 +5,7 @@ Escribe contenido directamente a un archivo remoto. Crea directorios automática
 
 ## Sintaxis
 ```bash
-sshcli write [ruta_remota] [contenido] [flags]
+sshcli write [ruta_remota] [contenido_opcional] [flags]
 ```
 
 ## Flags
@@ -17,18 +17,21 @@ sshcli write [ruta_remota] [contenido] [flags]
 
 ## Ejemplos
 ```bash
-# Crear script ejecutable
-sshcli write "/script/test.sh" "#!/bin/bash\necho OK" -x
+# Archivo simple
+sshcli write "/app/file.txt" "hola"
 
-# Crear archivo con permisos específicos
-sshcli write "/app/config.json" '{"key":"value"}' --chmod 600
+# Multilínea con escapes
+sshcli write "/app/file.txt" "linea1\nlinea2\n"
 
-# Crear directorios automáticamente
-sshcli write "/deep/nested/path/file.txt" "content"
+# Multilínea por stdin
+printf 'a\nb\n' | sshcli write "/app/file.txt"
+
+# Script ejecutable
+sshcli write "/script/test.sh" "#!/bin/bash\necho OK\n" -x
 ```
 
 ## Notas
-- El contenido se pasa como segundo argumento
-- Para contenido multilínea, usa `\n` para newlines
-- La flag `-x` otorga permisos 755 (ejecutable)
-- Crea directorios padre automáticamente
+- El contenido puede pasarse como segundo argumento o por `stdin`.
+- `\n`, `\t` y `\r` son interpretados correctamente.
+- La flag `-x` otorga permisos 755.
+- Crea directorios padre automáticamente.

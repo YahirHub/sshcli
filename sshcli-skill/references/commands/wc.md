@@ -1,8 +1,5 @@
 # wc — Contar líneas, palabras y bytes
 
-## Descripción
-Cuenta líneas, palabras y bytes de un archivo.
-
 ## Sintaxis
 ```bash
 sshcli wc [archivo] [flags]
@@ -18,15 +15,10 @@ sshcli wc [archivo] [flags]
 
 ## Ejemplos
 ```bash
-# Contar todo
 sshcli wc "/var/log/syslog"
-
-# Solo líneas
 sshcli wc "/app/data.csv" -l
-
-# Solo bytes
 sshcli wc "/var/log/syslog" -c
 ```
 
 ## Notas
-- Output: `líneas palabras bytes archivo`
+- Output típico: `líneas palabras bytes archivo`.

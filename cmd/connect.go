@@ -56,7 +56,6 @@ func runConnect(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Conectando a %s@%s:%d...\n", server.User, server.Host, server.Port)
 
-	// Configurar cliente SSH
 	sshConfig := &ssh.ClientConfig{
 		User: server.User,
 		Auth: []ssh.AuthMethod{
@@ -72,28 +71,29 @@ func runConnect(cmd *cobra.Command, args []string) error {
 	}
 	defer client.Close()
 
-	// Crear sesión
 	session, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("error al crear sesión: %v", err)
 	}
 	defer session.Close()
 
-	// Configurar terminal
 	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		return fmt.Errorf("error al configurar terminal: %v", err)
-	}
-	defer term.Restore(fd, oldState)
-
-	// Obtener tamaño de terminal
-	width, height, err := term.GetSize(fd)
-	if err != nil {
-		width, height = 80, 24
+	isTerm := term.IsTerminal(fd)
+	if isTerm {
+		oldState, err := term.MakeRaw(fd)
+		if err != nil {
+			return fmt.Errorf("error al configurar terminal: %v", err)
+		}
+		defer term.Restore(fd, oldState)
 	}
 
-	// Configurar PTY
+	width, height := 80, 24
+	if isTerm {
+		if w, h, err := term.GetSize(fd); err == nil {
+			width, height = w, h
+		}
+	}
+
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
 		ssh.TTY_OP_ISPEED: 14400,
@@ -104,25 +104,23 @@ func runConnect(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error al solicitar PTY: %v", err)
 	}
 
-	// Conectar stdin/stdout/stderr
 	session.Stdin = os.Stdin
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 
-	// Manejar cambios de tamaño de ventana (solo en Unix)
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != "windows" && isTerm {
 		go handleWindowResize(session, fd)
 	}
 
-	// Iniciar shell
 	if err := session.Shell(); err != nil {
 		return fmt.Errorf("error al iniciar shell: %v", err)
 	}
 
 	fmt.Printf("Conectado. Usa 'exit' o Ctrl+D para salir.\n\n")
 
-	// Esperar a que termine la sesión
-	session.Wait()
+	if err := session.Wait(); err != nil {
+		return err
+	}
 
 	fmt.Println("\nConexión cerrada.")
 	return nil

@@ -15,16 +15,17 @@ sshcli insert-line [archivo] [numero_linea] [contenido] [flags]
 
 ## Ejemplos
 ```bash
-# Insertar al inicio (línea 1)
+# Insertar al inicio real del archivo
 sshcli insert-line "/app/main.py" 1 "import os"
 
-# Insertar en línea 10
-sshcli insert-line "/app/config.py" 10 "DEBUG = True"
+# Alias para inicio
+sshcli insert-line "/app/main.py" 0 "import os"
 
-# Insertar al final (línea 0)
-sshcli insert-line "/app/main.py" 0 "# Nuevo comentario"
+# Insertar antes de la línea 10
+sshcli insert-line "/app/config.py" 10 "DEBUG = True"
 ```
 
 ## Notas
-- Línea 0 = inicio del archivo
-- Las líneas existentes se desplazan hacia abajo
+- `1` inserta al inicio del archivo.
+- `0` también se acepta como alias para inicio.
+- `N` inserta antes de la línea `N`.
