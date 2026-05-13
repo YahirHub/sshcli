@@ -1,7 +1,3 @@
-Ya tienes un archivo `README.md` muy completo y profesional en el contenido que proporcionaste. Sin embargo, si deseas **optimizarlo para GitHub** (añadiendo insignias, mejorando el formato visual y haciendo la lectura más ágil), aquí tienes una versión mejorada basada en tu contexto:
-
----
-
 # 🚀 SSHCLI - Cliente SSH Avanzado para Agentes de IA
 
 ![Go Version](https://img.shields.io/badge/go-1.25.0-blue.svg)
